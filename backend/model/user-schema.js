@@ -37,7 +37,7 @@ const UserSchema = Schema({
     },
 }, { timestamps: true })
 
-UserSchema.index({ email: 1 }); // Unique by default
+// UserSchema.index({ email: 1 }); // Unique by default
 UserSchema.index({ username: 1 });
 UserSchema.index({ "preferences.currency": 1 })
 
@@ -80,11 +80,11 @@ UserSchema.pre('remove', async function (next) {
 
 
 
-UserSchema.methods.findUserByemail = function (email) {
+UserSchema.statics.findUserByemail = function (email) {
     return this.where({ email }, )
 }
 
-UserSchema.methods.findUserByID = function (id) {
+UserSchema.statics.findUserByID = function (id) {
     return this.where({ _id: id })
 }
 

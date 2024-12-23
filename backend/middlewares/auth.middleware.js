@@ -1,5 +1,5 @@
 import jsonwebtoken from 'jsonwebtoken';
-import { HTTP_CODES } from '../config/constants';
+import { HTTP_CODES } from '../config/constants.js';
 
 export const authentication = (req ,res ,next) => {
     try{

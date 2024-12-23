@@ -1,7 +1,8 @@
 export const HTTP_CODES  = {
     SUCCESS :  200,
     CREATED : 201,
-    ALREADY_FOUND : 403,
+    FORBIDDEN: 403,
+    ALREADY_FOUND : 409,
     NOT_FOUND : 404,
     UNAUTHORIZED  : 401,
     SERVER_ERROR : 500,

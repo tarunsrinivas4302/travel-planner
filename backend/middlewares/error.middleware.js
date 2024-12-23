@@ -1,4 +1,4 @@
-import { HTTP_CODES } from "../config/constants";
+import { HTTP_CODES } from "../config/constants.js";
 
 export const errorHandler = (err, req, res, next) => {
     const statuscode = HTTP_CODES[res.statusCode] ? HTTP_CODES[res.statusCode] : HTTP_CODES.SERVER_ERROR;
