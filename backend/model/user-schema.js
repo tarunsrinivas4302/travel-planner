@@ -67,7 +67,7 @@ UserSchema.pre('save', function (next) {
 });
 
 //  Check is Passwords Valid or Not 
-UserSchema.methods.isPasswordValid = async function (enteredPassword) {
+UserSchema.statics.isPasswordValid = async function (enteredPassword) {
     return await bcrypt.compare(enteredPassword, this.password);
 };
 
@@ -85,7 +85,7 @@ UserSchema.statics.findUserByemail = function (email) {
 }
 
 UserSchema.statics.findUserByID = function (id) {
-    return this.where({ _id: id })
+    return this.where({ id: id })
 }
 
 export const User = model('user', UserSchema);

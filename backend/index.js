@@ -140,5 +140,5 @@ app.post("/api/trips/:tripid/invite", authentication, inviteUser);
 app.put("/api/trips/:tripid/accept-invite", authentication, acceptInvite);
 
 // MiddleWares
-app.use(errorHandler);
 app.use(notFound);
+app.use(errorHandler);
