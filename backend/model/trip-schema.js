@@ -1,5 +1,5 @@
 import { Schema , model } from "mongoose";
-import { User } from "./user-schema";
+import { User } from "./user-schema.js";
 const TripSchema = Schema({
     name : {
         type : String,
@@ -21,7 +21,28 @@ const TripSchema = Schema({
         type : Schema.Types.ObjectId,
         ref : User,
     }],
+    pendingParticipants: [
+        {
+          email: {
+            type: String,
+            required: true,
+          },
+          invitedAt: {
+            type: Date,
+            default: Date.now,
+          },
+          status: {
+            type: String,
+            enum: ["Pending", "Accepted", "Rejected"],
+            default: "Pending",
+          },
+        },
+    ],
     itineary : [{
+        title : {
+            type : String,
+            required : true,
+        },
         date : {
             type : Date, 
             required : true,
@@ -32,7 +53,6 @@ const TripSchema = Schema({
         },
         activity:{
             type : String,
-            required : true,
         },
         location : {type : String}
     }],
@@ -61,6 +81,7 @@ const TripSchema = Schema({
 
 TripSchema.index({ createdBy: 1 });
 TripSchema.index({ participants: 1 });
+TripSchema.index({ pendingParticipants: 1 });
 TripSchema.index({ status: 1 });
 TripSchema.index({ createdBy: 1, status: 1 }); // Compound index
 

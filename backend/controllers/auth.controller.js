@@ -1,31 +1,30 @@
 import { HTTP_CODES } from "../config/constants.js";
 import { User } from "./../model/user-schema.js";
-import { generatePresignedUrl } from "../config/aws-config.js";
-import jsonwebtoken from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
+import { deleteS3Object, generatePresignedUrl } from "../config/aws-config.js";
+import jsonwebtoken from "jsonwebtoken";
+import { validateEmail } from "../helpers/utils.js";
 
-const validateEmail = email => /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email);
+// Utility to validate email format
 
 
-
+// Function to set a JWT token in cookies
 const setCookie = (payload, res) => {
+  const token = jsonwebtoken.sign(payload, process.env.JWT_SECRET, {
+    expiresIn: "7d",
+  });
 
-  const token = jsonwebtoken.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
-
-
-  // Set JWT token in cookies
   res.cookie("token", token, {
     secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax", // Lax for local testing
-    httpOnly: process.env.NODE_ENV === "production"
+    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+    httpOnly: process.env.NODE_ENV === "production",
   });
-  return token;
-}
 
+  return token;
+};
+
+// User Registration
 export const register = async (req, res) => {
   try {
-
-    // Check if the uploaded file is invalid
     if (req.file && req.file.fieldname !== "avatar") {
       return res.status(HTTP_CODES.BAD_REQUEST).json({
         message: "Invalid file upload. Please try again.",
@@ -34,7 +33,6 @@ export const register = async (req, res) => {
 
     const { email, name, password } = req.body;
 
-    // Validate required fields
     if (!name || !email || !password) {
       return res.status(HTTP_CODES.BAD_REQUEST).json({
         message: "All fields are required",
@@ -44,14 +42,11 @@ export const register = async (req, res) => {
 
     if (!validateEmail(email)) {
       return res.status(HTTP_CODES.BAD_REQUEST).json({
-        message: "Email is not Valid",
-        user: null
-      })
+        message: "Invalid email format",
+        user: null,
+      });
     }
 
-
-
-    // Check if the user already exists
     const isUserExists = await User.findUserByemail(email);
     if (isUserExists.length > 0) {
       const payload = {
@@ -62,37 +57,35 @@ export const register = async (req, res) => {
 
       const token = setCookie(payload, res);
       return res.status(HTTP_CODES.SUCCESS).json({
-        message: "User Already Exists",
+        message: "User already exists",
         user: isUserExists,
-        token: token
+        token: token,
       });
     }
 
-    // Get the S3 key if a file is uploaded
-    const avatarUrl = req.file?.key || null; // Use the file key if available, else null
+    const avatarUrl = req.file?.key || null;
 
-    // Create a new user
     const user = new User({
       email,
       username: name,
       password,
-      avatar: avatarUrl, // Save the S3 key in the database
+      avatar: avatarUrl,
     });
 
     await user.save();
 
-    // Generate a presigned URL for the avatar (optional if no file uploaded)
     if (avatarUrl) {
       user.avatar = await generatePresignedUrl(avatarUrl);
     }
 
     const payload = {
-      email: email,
+      email: user.email,
       id: user.id || user._id,
-      name: user.name,
+      name: user.username,
     };
 
     const token = setCookie(payload, res);
+
     return res.status(HTTP_CODES.CREATED).json({
       message: "User registered successfully",
       user,
@@ -101,96 +94,166 @@ export const register = async (req, res) => {
   } catch (e) {
     console.error("Error during user registration:", e);
     return res.status(HTTP_CODES.SERVER_ERROR).json({
-      message: e.message || "Something went wrong, please try again.",
+      message: e.message || "Something went wrong. Please try again.",
       user: null,
     });
   }
 };
 
-
+// User Login
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
+
     if (!email || !password) {
       return res.status(HTTP_CODES.BAD_REQUEST).json({
-        message: "Invalid Request",
-        user: null
-      })
+        message: "Invalid request: Email and password are required.",
+        user: null,
+      });
     }
 
     if (!validateEmail(email)) {
       return res.status(HTTP_CODES.BAD_REQUEST).json({
-        message: "Email is not Valid",
-        user: null
-      })
-    }
-
-    const user = await User.findUserByemail(email);
-
-    if (!user) {
-      return res.status(HTTP_CODES.NOT_FOUND).json({
-        message: "User Not Found",
-        user: null
-      })
-    }
-
-    const isEqualPasswords = User.isPasswordValid(password);
-
-    if (!isEqualPasswords) {
-      return res.status(HTTP_CODES.UNAUTHORIZED).json({
-        message: "Invalid email or password",
+        message: "Invalid email format",
         user: null,
       });
     }
-    if (user && isEqualPasswords) {
-      const payload = {
-        email: user.email,
-        id: user.id || user._id,
-        name: user.name
-      }
-      const token = setCookie(payload, res);
-      if (!token) {
-        throw new Error("Unable To Create a Token");
-      }
 
-      res.status(HTTP_CODES.SUCCESS).json({
-        message: "User Logged In Successfully",
-        user: user,
-        token: token
-      })
-    }
-  } catch (e) {
-    console.error("Error during user Login :", e);
-    return res.status(HTTP_CODES.SERVER_ERROR).json({
-      message: e.message || "Something went wrong, please try again.",
-      user: null,
-    });
-  }
-};
+    const user = await User.findOne({ email });
 
-export const profile = async (req, res) => {
-  try {
-    console.log(req.user);
-    const { id: UserID } = req.user;
-    console.log(id , UserID);
-    const user = User.findUserByID(UserID);
-    console.log(user);
     if (!user) {
       return res.status(HTTP_CODES.NOT_FOUND).json({
-        message: "User Not Found",
+        message: "User not found",
         user: null,
-      })
+      });
     }
-    return res.status(HTTP_CODES.SUCCESS).json({ user })
 
+    const isPasswordValid = await user.isPasswordValid(password);
+    if (!isPasswordValid) {
+      return res.status(HTTP_CODES.UNAUTHORIZED).json({
+        message: "Invalid credentials",
+        user: null,
+      });
+    }
+
+    const payload = {
+      email: user.email,
+      id: user.id || user._id,
+      name: user.username,
+    };
+
+    const token = setCookie(payload, res);
+
+    return res.status(HTTP_CODES.SUCCESS).json({
+      message: "Login successful",
+      user,
+      token,
+    });
   } catch (e) {
-    console.error("Error during user registration:", e);
+    console.error("Error during user login:", e);
     return res.status(HTTP_CODES.SERVER_ERROR).json({
-      message: e.message || "Something went wrong, please try again.",
+      message: e.message || "Something went wrong. Please try again.",
       user: null,
     });
   }
 };
 
-export const updateProfile = async (req, res) => { };
+// Fetch User Profile
+export const profile = async (req, res) => {
+  try {
+    const { id } = req.user;
 
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(HTTP_CODES.NOT_FOUND).json({
+        message: "User not found",
+        user: null,
+      });
+    }
+    if(user.avatar) {
+      user.avatar = await generatePresignedUrl(user.avatar);
+    }
+    return res.status(HTTP_CODES.SUCCESS).json({ user });
+  } catch (e) {
+    console.error("Error fetching user profile:", e);
+    return res.status(HTTP_CODES.SERVER_ERROR).json({
+      message: e.message || "Something went wrong. Please try again.",
+      user: null,
+    });
+  }
+};
+
+// Update User Profile (To Be Implemented)
+export const updateProfile = async (req, res) => {
+  try {
+    const { id } = req.user;
+    const updates = req.body;
+
+    // If User Uploads the File 
+    if (req.file && req.file.fieldname !== "avatar") {
+      return res.status(HTTP_CODES.BAD_REQUEST).json({
+        message: "Invalid file upload. Please try again.",
+      });
+    }
+    
+    const avatarUrl = req.file?.key || null;
+    // updates?.avatar = avatarUrl;
+    if (updates.avatar) {
+      updates.avatar = avatarUrl;
+    }
+    const user = await User.findByIdAndUpdate(id, updates, { new: true });
+    if (!user) {
+      return res.status(HTTP_CODES.NOT_FOUND).json({
+        message: "User not found",
+        user: null,
+      });
+    }
+    if(user.avatar) {
+      user.avatar = await generatePresignedUrl(user.avatar);
+    }
+    return res.status(HTTP_CODES.SUCCESS).json({
+      message: "Profile updated successfully",
+      user,
+    });
+
+  } catch (e) {
+    console.error("Error updating user profile:", e);
+    return res.status(HTTP_CODES.SERVER_ERROR).json({
+      message: e.message || "Something went wrong. Please try again.",
+      user: null,
+    });
+  }
+};
+
+
+export const removeUser = async (req, res) => {
+  try{
+    const {id} = req.user;
+    const user = await User.findById(id);
+    if(!user){
+      return res.status(HTTP_CODES.NOT_FOUND).json({
+        message: "User not found",
+        user: null,
+      });
+    }
+
+    const avatarKey  = user.avatar;
+    if(avatarKey){
+      await deleteS3Object(avatarKey);
+    }
+
+
+    await User.findByIdAndDelete(id);
+
+    return res.status(HTTP_CODES.SUCCESS).json({
+      message: "User deleted successfully",
+      user: null,
+    });
+  }catch(e){
+    console.error("Error updating user profile:", e);
+    return res.status(HTTP_CODES.SERVER_ERROR).json({
+      message: e.message || "Something went wrong. Please try again.",
+      user: null,
+    });
+  }
+}

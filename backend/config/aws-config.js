@@ -1,4 +1,4 @@
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, GetObjectCommand , DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 export const s3Client = new S3Client({
@@ -31,3 +31,19 @@ export const generatePresignedUrl = async (
     throw new Error("Could not generate pre-signed URL");
   }
 };
+
+export const deleteS3Object = async (key) => {
+  try{
+    const command = new DeleteObjectCommand(
+      {
+        Bucket: process.env.AWS_BUCKET_NAME,
+        Key: key,
+      }
+    );
+    await s3Client.send(command);
+    console.log(`Deleted S3 object: ${key}`);
+  }catch (error) {
+    console.error("Error deleting S3 object:", error);
+    throw new Error("Could not delete S3 object");
+  }
+}

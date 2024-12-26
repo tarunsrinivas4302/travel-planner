@@ -10,6 +10,7 @@ import {
   login,
   profile,
   register,
+  removeUser,
   updateProfile,
 } from "./controllers/auth.controller.js";
 import { authentication } from "./middlewares/auth.middleware.js";
@@ -98,14 +99,13 @@ app.get("/", (req, res) => {
 
 /**  Authentication Routes ... */
 app.post("/api/auth/register", uploadFiles.single("avatar") , register);
-
 app.post("/api/auth/login", login);
 app.get("/api/auth/profile", authentication, profile);
-app.put("/api/auth/update", authentication, updateProfile);
+app.put("/api/auth/update", authentication, uploadFiles.single("avatar") ,  updateProfile);
+app.delete('/api/auth/delete-profile' , authentication , removeUser)
 
 // Trip Management Routes
-
-app.post("/api/trips", authentication, createTrip); // Creates trip
+app.post("/api/trips/create-trip", authentication, uploadFiles.single("trip-cover-image") , createTrip); // Creates trip
 app.get("/api/trips/:tripid", getTripDetails);
 app.put("/api/trips/:tripid", authentication, updateTripDetails);
 app.delete("/api/trips/:tripid", authentication, deleteTripDetails);

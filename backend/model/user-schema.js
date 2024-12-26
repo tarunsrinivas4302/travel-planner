@@ -1,91 +1,102 @@
 import { Schema, model } from "mongoose";
-import bcrypt from 'bcrypt';
+import bcrypt from "bcrypt";
 
-const UserSchema = Schema({
-
+const UserSchema = Schema(
+  {
     username: {
-        type: String,
-        required: true,
+      type: String,
+      required: true,
     },
     email: {
-        type: String,
-        required: true,
-        unique: true,
-        match: [/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, "Email Must be Valid"],
+      type: String,
+      required: true,
+      unique: true,
+      match: [
+        /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+        "Email Must be Valid",
+      ],
     },
     password: {
-        type: String,
-        required: true,
-        minlength: 8,
-        maxLength: 128,
-        match: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@.#$!%*?&])[A-Za-z\d@.#$!%*?&]{8,15}$/,
+      type: String,
+      required: true,
+      minlength: 8,
+      maxLength: 128,
+      match:
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@.#$!%*?&])[A-Za-z\d@.#$!%*?&]{8,15}$/,
     },
     trips: [{ type: Schema.Types.ObjectId, ref: "Trip" }],
     notifications: [{ type: Schema.Types.ObjectId, ref: "Notification" }],
     avatar: String,
     preferences: {
-        currency: {
-            type: String,
-            default: "INR"
-        },
-        theme: {
-            type: String,
-            enum: ['dark', 'light'],
-            default: 'light'
-        },
-
+      currency: {
+        type: String,
+        default: "INR",
+      },
+      theme: {
+        type: String,
+        enum: ["dark", "light"],
+        default: "light",
+      },
     },
-}, { timestamps: true })
+  },
+  { timestamps: true }
+);
 
 // UserSchema.index({ email: 1 }); // Unique by default
 UserSchema.index({ username: 1 });
-UserSchema.index({ "preferences.currency": 1 })
-
+UserSchema.index({ "preferences.currency": 1 });
 
 // Hash Password Before Saving
-UserSchema.pre('save', async function (next) {
-
-    if (!this.isModified('password')) return next();
-    try {
-        const salt = await bcrypt.genSalt(10);
-        this.password = await bcrypt.hash(this.password, salt);
-        next();
-    } catch (e) {
-        next(e);
-    }
-
+UserSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
     next();
-})
+  } catch (e) {
+    next(e);
+  }
 
-
-// Normalize Email
-UserSchema.pre('save', function (next) {
-    if (this.isModified('email')) {
-        this.email = this.email.toLowerCase();
-    }
-    next();
+  next();
 });
 
-//  Check is Passwords Valid or Not 
-UserSchema.statics.isPasswordValid = async function (enteredPassword) {
-    return await bcrypt.compare(enteredPassword, this.password);
+// Normalize Email
+UserSchema.pre("save", function (next) {
+  if (this.isModified("email")) {
+    this.email = this.email.toLowerCase();
+  }
+  next();
+});
+
+//  Check is Passwords Valid or Not
+UserSchema.methods.isPasswordValid = async function (enteredPassword) {
+  if (!enteredPassword || !this.password) {
+    throw new Error("Both enteredPassword and hashed password are required");
+  }
+  return await bcrypt.compare(enteredPassword, this.password);
 };
 
 // Removing Notifications and Trips of that Particular User ..
-UserSchema.pre('remove', async function (next) {
-    await this.model('Notification').deleteMany({ user: this._id });
-    await this.model('Trip').deleteMany({ createdBy: this._id });
-    next();
+UserSchema.pre("remove", async function (next) {
+  await this.model("Notification").deleteMany({ user: this._id });
+  await this.model("Trip").deleteMany({ createdBy: this._id });
+  next();
 });
 
-
-
+UserSchema.statics.findIDSByEmail = async function (emails) {
+    if (Array.isArray(emails)) {
+      return this.find({ email: { $in: emails } }).select("_id email");
+    } else {
+      const user = await this.findOne({ email: emails }).select("_id email");
+      return user ? [user] : [];
+    }
+  };
 UserSchema.statics.findUserByemail = function (email) {
-    return this.where({ email }, )
-}
+  return this.where({ email });
+};
 
 UserSchema.statics.findUserByID = function (id) {
-    return this.where({ id: id })
-}
+  return this.where({ id: id });
+};
 
-export const User = model('user', UserSchema);
+export const User = model("user", UserSchema);
