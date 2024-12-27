@@ -110,4 +110,12 @@ TripSchema.pre('remove', async function (next) {
 });
 
 
+// Finding Trip Details By ID
+TripSchema.statics.findTripByID = async function(tripid){
+    return this.where({ _id: tripid });
+}
+
+
+
+
 export const Trip = model('trip' , TripSchema)

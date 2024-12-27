@@ -14,7 +14,6 @@ const ExpenseSchema = Schema({
     paidBy: {
         type: Schema.Types.ObjectId,
         ref: User,
-        required: true
     },
     sharedBy: [{
         type: Schema.Types.ObjectId,
@@ -22,7 +21,7 @@ const ExpenseSchema = Schema({
     }],
     trip: {
         type: Schema.Types.ObjectId,
-        ref: Trip
+        ref: Trip,
     },
     description: {
         type: String,
