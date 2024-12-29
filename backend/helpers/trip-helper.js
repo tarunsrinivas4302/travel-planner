@@ -1,4 +1,7 @@
 import { HTTP_CODES } from "../config/constants.js";
+import { Expense } from "../model/expense-schema.js";
+import { User } from "../model/user-schema.js";
+import { isValidObjectID } from "./utils.js";
 
 export const ValidRequest = (req) => {
   const {
@@ -18,7 +21,7 @@ export const ValidRequest = (req) => {
     return {
       error: true,
       message: "Missing Required Fields",
-    }
+    };
   }
 
   // Checking For Valid Date Format
@@ -26,7 +29,7 @@ export const ValidRequest = (req) => {
     return {
       error: true,
       message: "Invalid Date Format",
-    }
+    };
   }
 
   // Checking Is End Date is Greater than Start Date
@@ -34,7 +37,7 @@ export const ValidRequest = (req) => {
     return {
       error: true,
       message: "End Date should be Greater than Start Date",
-    }
+    };
   }
 
   //   Validating Itenary Object
@@ -45,12 +48,12 @@ export const ValidRequest = (req) => {
           return {
             error: true,
             message: "Itineary Date is Invalid Format",
-          }
+          };
         }
         return {
           error: true,
           message: "Itineary Item Missing Required Fields",
-        }
+        };
       }
     });
   }
@@ -58,39 +61,68 @@ export const ValidRequest = (req) => {
   return {
     error: false,
     message: "Request is Valid",
-
-  }
+  };
 };
 
-const isValidDateFormat = (date) => /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(date);
-
+const isValidDateFormat = (date) =>
+  /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(date);
 
 export const ValidUpdateReq = (updates = {}) => {
-
   if (updates.length === 0) {
-    return { error: true, message: "Updates Object is Empty " }
+    return { error: true, message: "Updates Object is Empty " };
   }
-}
 
+  return { error: false, message: "" };
+};
 
 export const makeTripData = (updates) => {
-  const reqKeys = [name, destination, startDate, endDate, status,];
-  const reqObj = {}
+  const allowedKeys = [
+    "name",
+    "destination",
+    "startDate",
+    "endDate",
+    "status",
+    "itineary",
+    "participants",
+    "expenses",
+  ];
+  const tripData = {};
 
-  for (const key in updates) {
-    if (reqKeys.includes(key)) {
-      reqObj[key] = updates[key]; // Add valid keys from reqKeys to reqObj
-    }
-  
-    if (key === "itinerary") {
-      const itineraryArr = updates[key]; 
-      if (Array.isArray(itineraryArr)) {
-        reqObj.itinerary = itineraryArr.map(item => ({ ...item })); 
+  for (const key of allowedKeys) {
+    if (updates[key]) {
+      // Directly assign if the key is valid and data exists
+      if (key === "itineary" || key === "participants" || key === "expenses") {
+        tripData[key] = Array.isArray(updates[key]) ? [...updates[key]] : [];
       } else {
-        reqObj.itinerary = itineraryArr; 
+        tripData[key] = updates[key];
       }
     }
   }
-  
-  return reqObj;
-}
+
+  return tripData;
+};
+
+
+
+// Helper function to merge trip data
+export const mergeTripData = (trip, newData) => {
+  // Append array fields
+  if (newData.expenses) {
+    trip.expenses = [...(trip.expenses || []), ...newData.expenses];
+  }
+
+  if (newData.itineary) {
+    trip.itineary = [...(trip.itineary || []), ...newData.itineary];
+  }
+
+  if (newData.participants) {
+    trip.participant = [...(trip.participants || []), ...newData.participants];
+  }
+
+  // Update non-array fields
+  for (const key in newData) {
+    if (!["expenses", "itineary", "participants"].includes(key)) {
+      trip[key] = newData[key];
+    }
+  }
+};

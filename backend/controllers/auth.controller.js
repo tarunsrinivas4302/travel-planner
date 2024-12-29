@@ -22,7 +22,7 @@ const setCookie = (payload, res) => {
   return token;
 };
 
-// User Registration
+// * User Registration
 export const register = async (req, res) => {
   try {
     if (req.file && req.file.fieldname !== "avatar") {
@@ -100,7 +100,7 @@ export const register = async (req, res) => {
   }
 };
 
-// User Login
+// * User Login
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -158,7 +158,7 @@ export const login = async (req, res) => {
   }
 };
 
-// Fetch User Profile
+// * Fetch User Profile
 export const profile = async (req, res) => {
   try {
     const { id } = req.user;
@@ -183,7 +183,7 @@ export const profile = async (req, res) => {
   }
 };
 
-// Update User Profile (To Be Implemented)
+// * Update User Profile (To Be Implemented)
 export const updateProfile = async (req, res) => {
   try {
     const { id } = req.user;
@@ -225,7 +225,7 @@ export const updateProfile = async (req, res) => {
   }
 };
 
-
+// * Remove User Profile
 export const removeUser = async (req, res) => {
   try{
     const {id} = req.user;

@@ -83,6 +83,7 @@ mongoose.set("toJSON", {
   versionKey: false,
   transform: (doc, ret) => {
     ret.password = undefined;
+    ret._id = undefined;
     return ret;
   },
 });
@@ -115,7 +116,7 @@ app.post("/api/trips/:tripid/itenary", authentication, addActivity);
 app.delete(
   "/api/trips/:tripid/itenary/:activityid",
   authentication,
-  deleteActivity
+  deleteActivity 
 );
 
 // expense Management
@@ -137,7 +138,7 @@ app.get("/api/notifications", authentication, getNotifications);
 
 // Other endpoints might need
 app.post("/api/trips/:tripid/invite", authentication, inviteUser);
-app.put("/api/trips/:tripid/accept-invite", authentication, acceptInvite);
+app.put("/api/trips/:tripid/accept-invite/:invite-id",  acceptInvite);
 
 // MiddleWares
 // app.use(notFound);
