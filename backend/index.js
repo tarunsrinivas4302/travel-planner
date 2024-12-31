@@ -28,6 +28,7 @@ import {
   createExpense,
   deleteExpenses,
   getExpenses,
+  getSingleExpense,
   updateExpenses,
 } from "./controllers/expense.controller.js";
 import { getNotifications } from "./controllers/notification.controller.js";
@@ -99,14 +100,14 @@ app.get("/", (req, res) => {
 });
 
 /**  Authentication Routes ... */
-app.post("/api/auth/register", uploadFiles.single("avatar") , register);
+app.post("/api/auth/register", uploadFiles.single("avatar"), register);
 app.post("/api/auth/login", login);
 app.get("/api/auth/profile", authentication, profile);
-app.put("/api/auth/update", authentication, uploadFiles.single("avatar") ,  updateProfile);
-app.delete('/api/auth/delete-profile' , authentication , removeUser)
+app.put("/api/auth/update", authentication, uploadFiles.single("avatar"), updateProfile);
+app.delete('/api/auth/delete-profile', authentication, removeUser)
 
 // Trip Management Routes
-app.post("/api/trips/create-trip", authentication, uploadFiles.single("trip-cover-image") , createTrip); // Creates trip
+app.post("/api/trips/create-trip", authentication, uploadFiles.single("trip-cover-image"), createTrip); // Creates trip
 app.get("/api/trips/:tripid", getTripDetails);
 app.put("/api/trips/:tripid", authentication, updateTripDetails);
 app.delete("/api/trips/:tripid", authentication, deleteTripDetails);
@@ -116,12 +117,13 @@ app.post("/api/trips/:tripid/itenary", authentication, addActivity);
 app.delete(
   "/api/trips/:tripid/itenary/:activityid",
   authentication,
-  deleteActivity 
+  deleteActivity
 );
 
 // expense Management
 app.post("/api/trips/:tripid/expenses", authentication, createExpense);
 app.get("/api/trips/:tripid/expenses", authentication, getExpenses);
+app.get("/api/trips/:tripid/expenses/:expenseId", authentication, getSingleExpense);
 app.put(
   "/api/trips/:tripid/expenses/:expenseId",
   authentication,
@@ -138,7 +140,7 @@ app.get("/api/notifications", authentication, getNotifications);
 
 // Other endpoints might need
 app.post("/api/trips/:tripid/invite", authentication, inviteUser);
-app.put("/api/trips/:tripid/accept-invite/:invite-id",  acceptInvite);
+app.put("/api/trips/:tripid/accept-invite/:invite-id", acceptInvite);
 
 // MiddleWares
 // app.use(notFound);
