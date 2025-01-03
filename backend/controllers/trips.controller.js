@@ -88,6 +88,11 @@ export const createTrip = async (req, res) => {
 
     // Saving in to Trip
     const savedTrip = await Trip.create(trip);
+
+    if(savedTrip){
+      
+    }
+
     if (savedTrip.tripCoverImage) {
       await generatePresignedUrl(savedTrip);
     }
